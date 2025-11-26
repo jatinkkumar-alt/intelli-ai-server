@@ -28,18 +28,25 @@ def intelli_ai():
     try:
         data = request.get_json()
         user_message = data.get("message", "").strip()
+        history = data.get("history", "").strip()
 
         if not user_message:
             return jsonify({"reply": "No message received from app."})
 
         print(f"[AI] Incoming from app: {user_message}")
+        print(f"[AI] History length: {len(history)} characters")
 
         prompt = f"""
-You are Intelli, the AI assistant inside a messaging app called IntelliChat.
-Be concise, friendly, helpful, and explain things in simple language.
+        You are Intelli, the AI assistant inside a messaging app called IntelliChat.
+        You must answer based on the conversation history and the latest user message.
 
-User: {user_message}
-"""
+        Here is the conversation so far (from oldest to newest):
+        {history}
+
+        Now the user says: {user_message}
+
+        Respond as Intelli in a friendly, helpful, and concise way. Do not repeat the full history.
+        """
 
         model = genai.GenerativeModel(MODEL_NAME)
         response = model.generate_content(prompt)
