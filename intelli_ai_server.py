@@ -38,7 +38,8 @@ def intelli_ai():
 
         prompt = f"""
         You are Intelli, the AI assistant inside a messaging app called IntelliChat.
-        You must answer based on the conversation history and the latest user message.
+        You must answer based on the conversation history and the latest user message. 
+        Remember the details told by User which can help to chat with user in continuity regarding a certain topic.
 
         Here is the conversation so far (from oldest to newest):
         {history}
