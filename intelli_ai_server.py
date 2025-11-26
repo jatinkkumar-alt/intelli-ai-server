@@ -7,7 +7,7 @@ import google.generativeai as genai
 # CONFIG
 # -------------------------
 
-API_KEY = os.environ.get("AIzaSyCQ4j-Toxzk13_Vb_i4oxXlDivNwzNqOps")
+API_KEY = os.environ.get("GEMINI_API_KEY")
 MODEL_NAME = "models/gemini-flash-latest"
 
 if not API_KEY:
