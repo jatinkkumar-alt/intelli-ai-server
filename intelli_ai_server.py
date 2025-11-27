@@ -17,6 +17,76 @@ genai.configure(api_key=API_KEY)
 app = Flask(__name__)
 CORS(app)
 
+@app.route("/ask-ai", methods=["POST"])
+def ask_ai():
+    """
+    Request JSON:
+    {
+        "question": "string",
+        "prediction": { ... },   # lastPrediction from frontend (optional)
+        "symptoms": ["fever", "cough", ...]
+    }
+    Response JSON:
+    { "answer": "text..." } or { "error": "..." }
+    """
+    data = request.get_json() or {}
+    user_question = (data.get("question") or "").strip()
+    prediction = data.get("prediction") or {}
+    symptoms = data.get("symptoms") or []
+
+    # If prediction info is missing but we have symptoms, recompute:
+    if (not prediction) and symptoms:
+        prediction = make_prediction(symptoms)
+
+    disease = prediction.get("disease", "Unknown")
+    confidence = prediction.get("confidence", None)
+    top_predictions = prediction.get("top_predictions", [])
+
+    # Build prompt (general info, NOT diagnosis)
+    lines = []
+    lines.append("You are an AI medical information assistant.")
+    lines.append("You must NOT give a confirmed diagnosis or prescribe medicine.")
+    lines.append("Always encourage the user to consult a doctor for actual medical decisions.")
+    lines.append("")
+    lines.append("Here is an AI model based disease risk assessment:")
+    lines.append(f"- Predicted disease: {disease}")
+    if confidence is not None:
+        lines.append(f"- Model confidence: {confidence*100:.2f}%")
+    if top_predictions:
+        lines.append("- Top possible conditions:")
+        for p in top_predictions[:3]:
+            conf_str = f"{p['confidence']*100:.2f}%" if p.get("confidence") is not None else "N/A"
+            lines.append(f"  - {p['disease']} ({conf_str})")
+    if symptoms:
+        lines.append(f"- Reported symptoms: {', '.join(symptoms)}")
+    lines.append("")
+    lines.append("User question:")
+    lines.append(user_question or "Explain this result in simple language.")
+    lines.append("")
+    lines.append("Answer in 120-160 words, in simple, calm language.")
+    lines.append("Include only general information and lifestyle guidance.")
+    lines.append("Do NOT sound like you are confirming a diagnosis.")
+    lines.append("End by reminding them to visit a doctor for confirmation.")
+
+    prompt = "\n".join(lines)
+
+    try:
+        # Adjust payload format based on how YOUR Render API expects it
+        payload = {"prompt": prompt}
+
+        resp = requests.post(GEMINI_API_URL, json=payload, timeout=20)
+        resp.raise_for_status()
+        resp_json = resp.json()
+
+        # Adjust this based on your Render response structure
+        answer = resp_json.get("response", str(resp_json))
+
+
+        return jsonify({"answer": answer})
+
+    except Exception as e:
+        print("Error calling Gemini API:", e)
+        return jsonify({"error": "AI assistant is not available right now."}), 500
 
 # -------------------------
 # ROUTE: AI ASSISTANT
